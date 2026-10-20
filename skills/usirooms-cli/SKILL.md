@@ -15,11 +15,39 @@ reserved and nothing is sent.
 usirooms <command> [flags]
 ```
 
-The binary lives at `~/.local/bin/usirooms` (symlink into
-`~/.local/lib/usirooms`). If it is not on `PATH`, this skill has no tool behind
-it — installing the skill does not install the CLI. Ask the user to run
-`make install` in the usirooms-cli checkout, or run
-`python3 usi_rooms.py <command> [flags]` from that checkout directly.
+The binary normally lives at `~/.local/bin/usirooms` (symlink into
+`~/.local/lib/usirooms`).
+
+## If `usirooms` is missing
+
+Installing this skill does **not** install the CLI. Never guess availability,
+and do not fall back to the website by reading screenshots: build the tool.
+
+1. Check for the binary: `command -v usirooms`.
+2. Check for a checkout: if `usi_rooms.py` exists in the current project or a
+   sibling directory, `python3 usi_rooms.py <command> [flags]` runs with no
+   build at all.
+3. Otherwise clone and build (roughly 10-30 s on first run, mostly the venv):
+
+   ```bash
+   git clone https://github.com/kvn1351/usirooms-cli   # or: gh repo clone kvn1351/usirooms-cli
+   cd usirooms-cli && make && make install
+   ```
+
+   `make` creates `.venv-build`, installs PyInstaller into it, and produces
+   `dist-dir/usirooms/`; `make install` puts the binary in `~/.local/bin`. The
+   repository is private, so the clone needs the user's GitHub credentials
+   (`gh auth status` should be green).
+
+4. Verify: `usirooms --help | head -3`, then run the actual query.
+5. If `make` fails, report the blocker instead of improvising:
+   `xcode-select --install` fixes a missing `codesign`/SDK, and the build needs
+   network access for the venv. `~/.local/bin` must be on `PATH` for step 4; if
+   it is not, call the binary by path (`~/.local/bin/usirooms`) or use
+   `dist-dir/usirooms/usirooms` directly.
+
+Do not run `make build-one` for this: the single-file artifact costs ~4 s of
+startup per call, which is pure waste for a CLI.
 
 ## Commands
 
