@@ -116,6 +116,13 @@ Optional defaults file — `$USI_ROOMS_CONFIG`, else
 }
 ```
 
+Write it with the CLI instead of hand-editing JSON:
+
+```bash
+usirooms config --campus east --buildings east,east2 --language english --name "Their Name"
+usirooms config          # show      · --unset KEY  · --reset
+```
+
 Read it before diagnosing an unexpected scope: a config default silently
 narrows a bare `usirooms free`, and `language` can flip a booking mail between
 English and Italian independently of the campus.

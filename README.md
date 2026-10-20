@@ -131,9 +131,21 @@ buildings mail `gestione-aule.lu@usi.ch` in Italian. Add `--no-open` to print
 the `mailto:` link instead of launching the client, `--json` for structured
 output, or `--force` to prepare a mail for a slot that is occupied.
 
-## Optional defaults
+## Defaults file
 
-Set the scope and signature once in `~/.config/usirooms/config.json`:
+Optional — everything works without it. It stores the scope and signature you
+use most, so that bare commands stay short.
+
+Create it with the CLI:
+
+```bash
+usirooms config --campus east --buildings east,east2 --language english --name "Your Name"
+usirooms config                    # show the file
+usirooms config --unset name       # drop one key
+usirooms config --reset            # delete it, back to built-in defaults
+```
+
+Or write `~/.config/usirooms/config.json` by hand:
 
 ```json
 {
@@ -144,9 +156,20 @@ Set the scope and signature once in `~/.config/usirooms/config.json`:
 }
 ```
 
-Flags always win over the file. Buildings are `black`, `east`, `east2`, `red`,
-`main`; campuses are `east` (the two east-campus sets) and `west` (the other
-three).
+| key | allowed values | effect |
+|---|---|---|
+| `campus` | `east`, `west` | default scan scope; also picks the booking office when a room cannot be placed |
+| `buildings` | list drawn from `black`, `east`, `east2`, `red`, `main` | default scan scope, takes priority over `campus` |
+| `language` | `english`, `italian` (also `en`, `it`) | language of the booking e-mail, independent of campus |
+| `name` | any non-empty string | signature at the end of the booking e-mail |
+
+Unknown keys are ignored with a warning; an invalid value exits 1 naming the
+offending key. The file is read from `$USI_ROOMS_CONFIG`, else
+`~/.config/usirooms/config.json`; `--config PATH` overrides both.
+
+Command-line flags always win, and every scan prints the scope it actually used
+(`2026-10-20 16:00 [west campus]: 5 free / 25`), so a stored default can never
+silently hide buildings.
 
 ## More
 

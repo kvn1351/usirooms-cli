@@ -70,6 +70,7 @@ LABEL = {
 CONFIG_KEYS = ("campus", "buildings", "language", "name")
 LANG_ALIAS = {"en": "en", "eng": "en", "english": "en",
               "it": "it", "ita": "it", "italian": "it", "italiano": "it"}
+LANG_LONG = {"en": "english", "it": "italian"}
 
 
 def config_path(explicit: str | None = None) -> str:
@@ -81,6 +82,59 @@ def config_path(explicit: str | None = None) -> str:
     return os.path.join(base, "usirooms", "config.json")
 
 
+def _check(key: str, value, path: str):
+    """Validate and normalise one config entry."""
+    if key == "campus":
+        if value not in CAMPUSES:
+            raise SystemExit(f"error: {path}: campus must be one of {list(CAMPUSES)}")
+    elif key == "buildings":
+        if not isinstance(value, list) or any(b not in ROOMS for b in value):
+            raise SystemExit(f"error: {path}: buildings must be a list drawn from "
+                             f"{list(ROOMS)}")
+    elif key == "language":
+        if LANG_ALIAS.get(str(value).strip().lower()) is None:
+            raise SystemExit(f"error: {path}: language must be english|italian (or en|it)")
+        return str(value).strip().lower()
+    elif key == "name":
+        if not isinstance(value, str) or not value.strip():
+            raise SystemExit(f"error: {path}: name must be a non-empty string")
+        return value.strip()
+    return value
+
+
+def validate_config(raw: dict, path: str) -> dict:
+    cfg: dict = {}
+    for key, value in raw.items():
+        if key not in CONFIG_KEYS:
+            print(f"warning: {path}: ignoring unknown key {key!r} "
+                  f"(known: {', '.join(CONFIG_KEYS)})", file=sys.stderr)
+            continue
+        cfg[key] = _check(key, value, path)
+    return cfg
+
+
+def read_config_file(path: str) -> dict:
+    with open(path, encoding="utf-8") as fh:
+        try:
+            raw = json.load(fh)
+        except json.JSONDecodeError as exc:
+            raise SystemExit(f"error: {path}: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise SystemExit(f"error: {path}: top level must be a JSON object")
+    return raw
+
+
+def write_config_file(path: str, cfg: dict) -> None:
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    tmp = f"{path}.tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(cfg, fh, indent=2)
+        fh.write("\n")
+    os.replace(tmp, path)
+
+
 def load_config(explicit: str | None = None) -> dict:
     path = config_path(explicit)
     required = bool(explicit or os.environ.get("USI_ROOMS_CONFIG"))
@@ -88,38 +142,7 @@ def load_config(explicit: str | None = None) -> dict:
         if required:
             raise SystemExit(f"error: config file not found: {path}")
         return {}
-
-    try:
-        with open(path, encoding="utf-8") as fh:
-            raw = json.load(fh)
-    except json.JSONDecodeError as exc:
-        raise SystemExit(f"error: {path}: {exc}") from exc
-    if not isinstance(raw, dict):
-        raise SystemExit(f"error: {path}: top level must be a JSON object")
-
-    cfg: dict = {}
-    for key, value in raw.items():
-        if key not in CONFIG_KEYS:
-            print(f"warning: {path}: ignoring unknown key {key!r} "
-                  f"(known: {', '.join(CONFIG_KEYS)})", file=sys.stderr)
-            continue
-        if key == "campus":
-            if value not in CAMPUSES:
-                raise SystemExit(f"error: {path}: campus must be one of {list(CAMPUSES)}")
-        elif key == "buildings":
-            if not isinstance(value, list) or any(b not in ROOMS for b in value):
-                raise SystemExit(f"error: {path}: buildings must be a list drawn from "
-                                 f"{list(ROOMS)}")
-        elif key == "language":
-            lang = LANG_ALIAS.get(str(value).strip().lower())
-            if not lang:
-                raise SystemExit(f"error: {path}: language must be english|italian (or en|it)")
-            value = lang
-        elif key == "name":
-            if not isinstance(value, str) or not value.strip():
-                raise SystemExit(f"error: {path}: name must be a non-empty string")
-        cfg[key] = value
-    return cfg
+    return validate_config(read_config_file(path), path)
 
 _SD = re.compile(r'name="RadScheduler1_SelectedDateCalendar_SD" id="[^"]*" value="\[\[(\d+),(\d+),(\d+)\]\]"')
 _INPUT = re.compile(r'<input type="hidden" name="([^"]+)" id="[^"]*" value="([^"]*)"')
@@ -310,6 +333,13 @@ def open_mailto(url: str) -> None:
         webbrowser.open(url)
 
 
+def _lang(value: str) -> str:
+    lang = LANG_ALIAS.get(str(value).strip().lower())
+    if not lang:
+        raise argparse.ArgumentTypeError("must be english|italian (or en|it)")
+    return lang
+
+
 def _hhmm(value: str) -> dt.time:
     h, m = (int(x) for x in value.split(":"))
     return dt.time(h, m)
@@ -326,6 +356,7 @@ commands:
   at     one room: free at --time? exit 0 free, 1 busy, 2 error
   free   every room in scope: which ones are free at --time
   book   prefilled booking e-mail for --room/--from/--to, opened in your client
+  config show, set, unset or reset the defaults file below
 
 examples:
   %(prog)s free --campus east --time 14:30
@@ -333,9 +364,12 @@ examples:
   %(prog)s at --room C1.03 --time 14:30
   %(prog)s day --room D3.01 --json
   %(prog)s book --room D0.02 --from 16:00 --to 17:00
+  %(prog)s config --campus east --buildings east,east2 --language english
+  %(prog)s config --unset name
 
 config file (optional; command-line flags always win):
   read from $USI_ROOMS_CONFIG, else ~/.config/usirooms/config.json, else --config
+  write it with `%(prog)s config --campus east --language english --name "…"`
   {
     "campus": "east",
     "buildings": ["east", "east2"],
@@ -361,6 +395,51 @@ coverage:
 """
 
 
+def cmd_config(a) -> int:
+    """usirooms config — show, set, unset or reset the defaults file."""
+    path = config_path(a.config)
+    exists = os.path.exists(path)
+    cfg = validate_config(read_config_file(path), path) if exists else {}
+
+    if a.reset:
+        if exists:
+            os.remove(path)
+            print(f"removed {path}", file=sys.stderr)
+        else:
+            print(f"no config at {path}", file=sys.stderr)
+        return 0
+
+    changed = False
+    if a.campus:
+        cfg["campus"], changed = a.campus, True
+    if a.lang:
+        cfg["language"], changed = LANG_LONG[a.lang], True
+    if a.buildings:
+        cfg["buildings"] = [b.strip() for b in a.buildings.split(",") if b.strip()]
+        changed = True
+    if a.name:
+        cfg["name"], changed = a.name, True
+    for key in [k.strip() for k in (a.unset or "").split(",") if k.strip()]:
+        if key not in CONFIG_KEYS:
+            raise SystemExit(f"error: unknown key {key!r} (known: {', '.join(CONFIG_KEYS)})")
+        cfg.pop(key, None)
+        changed = True
+
+    if changed:
+        cfg = validate_config(cfg, path)
+        write_config_file(path, cfg)
+        print(f"{'updated' if exists else 'created'} {path}", file=sys.stderr)
+
+    if not exists and not changed:
+        print(f"no config at {path}\n"
+              f"create one with: usirooms config --campus east --language english "
+              f"--name \"Your Name\"", file=sys.stderr)
+        return 0
+
+    print(json.dumps(cfg, indent=2) if cfg else "(empty)")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         prog="usirooms",
@@ -368,7 +447,7 @@ def main(argv=None) -> int:
         epilog=HELP_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    ap.add_argument("command", choices=["day", "at", "free", "book"],
+    ap.add_argument("command", choices=["day", "at", "free", "book", "config"],
                     help="action to run; see commands below")
     ap.add_argument("--room", help="room name, e.g. C1.03, A-11, SI-006, 251")
     ap.add_argument("--building", choices=list(ROOMS), default=None,
@@ -387,19 +466,29 @@ def main(argv=None) -> int:
                     help="book even if the room is occupied")
     ap.add_argument("--no-open", action="store_true",
                     help="print the mailto: URL instead of opening the client")
-    ap.add_argument("--lang", choices=["en", "it"], default=None,
-                    help="mail language; default from config, else the campus")
+    ap.add_argument("--lang", "--language", dest="lang", type=_lang, default=None,
+                    help="mail language: english|italian (or en|it); default from "
+                         "config, else the campus")
     ap.add_argument("--config", default=None,
                     help="defaults file; default $USI_ROOMS_CONFIG or "
                          "~/.config/usirooms/config.json")
+    ap.add_argument("--buildings", default=None,
+                    help="comma-separated building list, e.g. east,east2 (config)")
+    ap.add_argument("--unset", default=None,
+                    help="comma-separated config keys to remove (config)")
+    ap.add_argument("--reset", action="store_true",
+                    help="delete the defaults file (config)")
     ap.add_argument("--json", action="store_true",
                     help="machine-readable output where supported")
     a = ap.parse_args(argv)
 
+    if a.command == "config":
+        return cmd_config(a)
+
     cfg = load_config(a.config)
     cli_campus = a.campus
     a.campus = cli_campus or cfg.get("campus")
-    lang = a.lang or cfg.get("language")
+    lang = a.lang or LANG_ALIAS.get(str(cfg.get("language", "")).lower())
     scope_buildings = cfg.get("buildings") or []
 
     api = Rooms()
