@@ -347,6 +347,15 @@ def open_mailto(url: str) -> None:
         webbrowser.open(url)
 
 
+def _split_buildings(value: str) -> list[str]:
+    parts = [b.strip() for b in value.split(",") if b.strip()]
+    bad = [b for b in parts if b not in ROOMS]
+    if bad:
+        raise SystemExit(f"error: unknown building(s) {', '.join(bad)}; "
+                         f"choose from {', '.join(ROOMS)}")
+    return parts
+
+
 def _lang(value: str) -> str:
     lang = LANG_ALIAS.get(str(value).strip().lower())
     if not lang:
@@ -520,6 +529,12 @@ def main(argv=None) -> int:
     when = dt.date.fromisoformat(a.date) if a.date else dt.date.today()
     a.time = a.time or dt.datetime.now().strftime("%H:%M")
 
+    if a.command in ("day", "at", "book") and (a.buildings is not None
+                                               or a.exclude is not None):
+        print("error: --buildings and --exclude apply to free/rooms (per run) and "
+              "to config (persisted); use --room here", file=sys.stderr)
+        return 2
+
     if a.command in ("day", "at"):
         try:
             out = api.day(a.room, when)
@@ -549,8 +564,14 @@ def main(argv=None) -> int:
         if cli_campus and a.building and BUILDING_CAMPUS[a.building] != cli_campus:
             print(f"error: {a.building} is not on the {a.campus} campus", file=sys.stderr)
             return 2
+        run_buildings = _split_buildings(a.buildings) if a.buildings else None
+        run_exclude = _split_buildings(a.exclude) if a.exclude is not None else None
+
         if a.building:
             rooms, scope = ROOMS[a.building], a.building
+        elif run_buildings:
+            rooms = [r for b in run_buildings for r in ROOMS[b]]
+            scope = ", ".join(run_buildings)
         elif cli_campus:
             rooms = CAMPUSES[cli_campus]
             scope = f"{cli_campus} campus ({'+'.join(CAMPUS_BUILDINGS[cli_campus])})"
@@ -563,7 +584,12 @@ def main(argv=None) -> int:
         else:
             rooms, scope = ALL_ROOMS, "all buildings"
 
-        excluded = set() if a.building else set(cfg.get("exclude") or [])
+        if run_exclude is not None:
+            excluded = set(run_exclude)   # per-run override, "" clears
+        elif a.building or run_buildings:
+            excluded = set()              # explicit scope beats the stored exclusion
+        else:
+            excluded = set(cfg.get("exclude") or [])
         if excluded:
             rooms = [r for r in rooms if building_of(r) not in excluded]
             if not rooms:

@@ -161,15 +161,32 @@ but has no timetable, which is a different answer: unknown, not free.
 
 ## Scope and defaults
 
-Precedence: `--building` > `--campus` > config `buildings` > config `campus` >
-all rooms, then the config `exclude` list is subtracted. `--campus east` covers
-`east` + `east2`; `--campus west` covers `black` + `red` + `main`.
+Precedence for scans: `--building` > `--buildings` > `--campus` > config
+`buildings` > config `campus` > all rooms; the `exclude` list is subtracted
+last. `--campus east` covers `east` + `east2`; `--campus west` covers `black` +
+`red` + `main`.
 
-`exclude` is how a user skips buildings they never use. It only filters scans:
-an explicit `--building` or `--room` still reaches an excluded building, and the
-scope line says so (`[east campus (east+east2), excluding east2]`). If a scan
-comes back with fewer rooms than the campus implies, read that bracket before
-suspecting the tool.
+### Respecting `exclude`
+
+`exclude` records a building the user does not want scanned. Treat it as their
+decision, not a bug: report the scope it produces and answer from that. If you
+suspect it hides something useful, note it in one sentence and ask. Never widen
+the scan on your own initiative, and never stitch together per-building scans to
+sneak an excluded building into the answer.
+
+Widening is legitimate only when the user asks for it, and it is per-run:
+
+```bash
+usirooms free --buildings east,east2   # explicit scope beats the stored exclude
+usirooms free --exclude ""             # ignore every exclusion this once
+```
+
+Neither writes the file; persistence is `usirooms config --exclude` and friends.
+`--buildings` / `--exclude` on `day`, `at` or `book` are rejected, by design.
+
+The scope line is authoritative for what a scan covered
+(`[east campus (east+east2), excluding east2]`). If a scan returns fewer rooms
+than the campus implies, read that bracket before suspecting the tool.
 
 Optional defaults file — `$USI_ROOMS_CONFIG`, else
 `~/.config/usirooms/config.json`:

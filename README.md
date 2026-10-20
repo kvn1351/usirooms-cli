@@ -144,6 +144,7 @@ Create it with the CLI:
 ```bash
 usirooms config --campus east --buildings east,east2 --language english --name "Your Name"
 usirooms config --exclude east2       # skip a building in every scan
+usirooms free --buildings east,east2   # one-off scan that includes it anyway
 usirooms config                    # show the file
 usirooms config --unset name       # drop one key
 usirooms config --reset            # delete it, back to built-in defaults
@@ -165,7 +166,7 @@ Or write `~/.config/usirooms/config.json` by hand:
 |---|---|---|
 | `campus` | `east`, `west` | default scan scope; also picks the booking office when a room cannot be placed |
 | `buildings` | list drawn from `black`, `east`, `east2`, `red`, `main` | default scan scope, takes priority over `campus` |
-| `exclude` | list drawn from the same five | buildings left out of scans; an explicit `--building` still wins |
+| `exclude` | list drawn from the same five | buildings left out of scans; an explicit `--building` or `--buildings` still wins |
 | `language` | `english`, `italian` (also `en`, `it`) | language of the booking e-mail, independent of campus |
 | `name` | any non-empty string | signature at the end of the booking e-mail |
 
