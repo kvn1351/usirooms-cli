@@ -1,6 +1,6 @@
 # usirooms
 
-**Which USI Lugano rooms are free right now — and the booking e-mail, written
+**Which USI Lugano rooms are free right now, and the booking e-mail, written
 for you.**
 
 `usirooms` answers the one question that otherwise needs a browser, a click and
@@ -9,7 +9,7 @@ Then, when you pick one, it opens a reservation e-mail to the right office with
 the room, date and time already filled in.
 
 It exists primarily so **agents** can do this for you. Ask your coding agent a
-normal question — "anything free on the east campus at 16?" — and it runs the
+normal question, "anything free on the east campus at 16?", and it runs the
 CLI, reads the answer, and can follow up by opening the prefilled mail. Install
 the skill once and the agent knows the commands, the output format, and how to
 build the tool if it is missing.
@@ -58,15 +58,15 @@ npx skills list -g
 ```
 
 That drops a single file into `~/.agents/skills/usirooms-cli` and wires it to
-every agent the installer detects, so the next session knows how to use the CLI
-— including cloning and building it when `usirooms` is not on `PATH` yet.
+every agent the installer detects, so the next session knows how to use the CLI,
+including cloning and building it when `usirooms` is not on `PATH` yet.
 
 Either way the install needs your GitHub credentials: the repository is
 private, so the clone authenticates through your existing `gh` login.
 
 ### Or let the agent do it
 
-Paste the link and say what you want — no commands to type:
+Paste the link and say what you want, no commands to type:
 
 > Install the skill from https://github.com/kvn1351/usirooms-cli and build the
 > CLI it needs.
@@ -133,7 +133,7 @@ output, or `--force` to prepare a mail for a slot that is occupied.
 
 ## Defaults file
 
-Optional — everything works without it. It stores the scope and signature you
+Optional: everything works without it. It stores the scope and signature you
 use most, so that bare commands stay short.
 
 Create it with the CLI:
@@ -173,7 +173,7 @@ silently hide buildings.
 
 ## More
 
-- [`docs/internals.md`](docs/internals.md) — the data source, why dates cost one
+- [`docs/internals.md`](docs/internals.md): the data source, why dates cost one
   request per day, build targets, signing, troubleshooting.
-- [`skills/usirooms-cli/SKILL.md`](skills/usirooms-cli/SKILL.md) — what the agent
+- [`skills/usirooms-cli/SKILL.md`](skills/usirooms-cli/SKILL.md): what the agent
   reads.
