@@ -568,21 +568,17 @@ def main(argv=None) -> int:
         run_exclude = _split_buildings(a.exclude) if a.exclude is not None else None
 
         if a.building:
-            rooms, scope = ROOMS[a.building], a.building
+            label, buildings = a.building, [a.building]
         elif run_buildings:
-            rooms = [r for b in run_buildings for r in ROOMS[b]]
-            scope = ", ".join(run_buildings)
+            label, buildings = None, run_buildings
         elif cli_campus:
-            rooms = CAMPUSES[cli_campus]
-            scope = f"{cli_campus} campus ({'+'.join(CAMPUS_BUILDINGS[cli_campus])})"
+            label, buildings = f"{cli_campus} campus", CAMPUS_BUILDINGS[cli_campus]
         elif scope_buildings:
-            rooms = [r for b in scope_buildings for r in ROOMS[b]]
-            scope = ", ".join(scope_buildings)
+            label, buildings = None, scope_buildings
         elif a.campus:
-            rooms = CAMPUSES[a.campus]
-            scope = f"{a.campus} campus ({'+'.join(CAMPUS_BUILDINGS[a.campus])})"
+            label, buildings = f"{a.campus} campus", CAMPUS_BUILDINGS[a.campus]
         else:
-            rooms, scope = ALL_ROOMS, "all buildings"
+            label, buildings = "all buildings", list(ROOMS)
 
         if run_exclude is not None:
             excluded = set(run_exclude)   # per-run override, "" clears
@@ -590,13 +586,27 @@ def main(argv=None) -> int:
             excluded = set()              # explicit scope beats the stored exclusion
         else:
             excluded = set(cfg.get("exclude") or [])
-        if excluded:
-            rooms = [r for r in rooms if building_of(r) not in excluded]
-            if not rooms:
-                print("error: every room in scope is excluded by config 'exclude' "
-                      f"({', '.join(sorted(excluded))})", file=sys.stderr)
-                return 2
-            scope += f", excluding {'+'.join(b for b in ROOMS if b in excluded)}"
+
+        effective = [b for b in buildings if b not in excluded]
+        dropped = [b for b in ROOMS if b in excluded and b in buildings]
+        rooms = [r for b in effective for r in ROOMS[b]]
+        if not rooms:
+            source = "--exclude" if run_exclude is not None else "config 'exclude'"
+            print(f"error: every room in scope is excluded by {source} "
+                  f"({', '.join(sorted(excluded))})", file=sys.stderr)
+            return 2
+
+        # The label states the scope actually scanned. Exclusions are named
+        # separately so the summary never reads as "covers east2, but not".
+        if label is None:
+            scope = ", ".join(effective)
+        elif not dropped:
+            scope = f"{label} ({'+'.join(effective)})" if label.endswith("campus") else label
+        elif label == "all buildings":
+            scope = f"{label}, {'+'.join(dropped)} excluded by config"
+        else:
+            scope = f"{label} ({'+'.join(effective)}), " \
+                    f"{'+'.join(dropped)} excluded by config"
 
         if a.command == "rooms":
             if a.json:

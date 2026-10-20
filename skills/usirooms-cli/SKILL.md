@@ -77,9 +77,13 @@ Exit codes: `0` free/success · `1` busy, or `book` refused an occupied slot ·
 
 - A `FREE` line already carries its whole window, so you do **not** need a
   `day` call per room to answer "how long is it free".
-- The bracketed scope is the *effective* one (flags plus config) and names the
-  buildings it covers. Never claim a scan covered every building without
-  checking it.
+- The bracketed scope is the *effective* one, flags plus config already applied,
+  and names the buildings actually scanned. When a stored `exclude` removed one
+  it says so outright: `[east campus (east), east2 excluded by config]`. That
+  line is the whole answer about scope: do not read
+  `~/.config/usirooms/config.json` to work out what happened, and do not
+  subtract buildings yourself. `usirooms free --campus east` respects the
+  exclusion on its own.
 - `--time` defaults to now, so `usirooms free --campus east` answers "what is
   free right now".
 - `?? … non abilitato` means the room is missing from the scheduler. The public
@@ -184,9 +188,11 @@ usirooms free --exclude ""             # ignore every exclusion this once
 Neither writes the file; persistence is `usirooms config --exclude` and friends.
 `--buildings` / `--exclude` on `day`, `at` or `book` are rejected, by design.
 
-The scope line is authoritative for what a scan covered
-(`[east campus (east+east2), excluding east2]`). If a scan returns fewer rooms
-than the campus implies, read that bracket before suspecting the tool.
+The scope line is authoritative for what a scan covered. A narrowed campus
+looks like `[east campus (east), east2 excluded by config]`: the parenthesis is
+the set that was scanned, the clause is the reason the rest is missing. Report
+that set. Reading the config file adds nothing, and re-scanning per building to
+reconstruct the "missing" part is exactly the behaviour to avoid.
 
 Optional defaults file — `$USI_ROOMS_CONFIG`, else
 `~/.config/usirooms/config.json`:
@@ -208,9 +214,9 @@ usirooms config --campus east --buildings east,east2 --language english --name "
 usirooms config          # show      · --unset KEY  · --reset
 ```
 
-Read it before diagnosing an unexpected scope: a config default silently
-narrows a bare `usirooms free`, and `language` can flip a booking mail between
-English and Italian independently of the campus.
+You do not need to read this file: the summary line already reflects it. Only
+open it when the user asks to change a default, and then use `usirooms config`
+rather than editing JSON.
 
 ## Common mistakes
 
@@ -221,3 +227,5 @@ English and Italian independently of the campus.
   POST, so querying a month out costs ~30 requests.
 - Treating a free room as free all day: the answer holds for the queried
   `--time` only. Ask `day --room` for the full window.
+- Reading the config file to explain a scope, or re-scanning excluded buildings
+  "to be complete": the summary line already states the effective scope.

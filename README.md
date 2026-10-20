@@ -175,8 +175,8 @@ offending key. The file is read from `$USI_ROOMS_CONFIG`, else
 `~/.config/usirooms/config.json`; `--config PATH` overrides both.
 
 Command-line flags always win, and every scan prints the scope it actually used
-(`2026-10-20 13:55 [east campus (east+east2), excluding east2]: 2 free / 8`), so
-a stored default can never silently hide buildings.
+(`2026-10-20 14:02 [east campus (east), east2 excluded by config]: 2 free / 8`),
+so a stored default can never silently hide buildings.
 
 ## More
 
