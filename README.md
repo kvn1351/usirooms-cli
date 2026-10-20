@@ -136,12 +136,17 @@ path is simply ignored.
 
 ## Agent skill
 
-`SKILL.md` describes the CLI for coding agents: commands, output semantics,
-exit codes, scope precedence and the traps (`?? non abilitato` rooms, half-open
-intervals, `--date` cost). Symlink it where your agent looks for skills, e.g.:
+`skills/usirooms-cli/SKILL.md` describes the CLI for coding agents: commands,
+output semantics, exit codes, scope precedence and the traps (`?? non abilitato`
+rooms, half-open intervals, `--date` cost). It sits in a `skills/<name>/`
+directory on purpose — that is the layout installers package on its own, so a
+skill install pulls exactly one file instead of the whole checkout.
+
+Symlink it where your agent looks for skills, e.g.:
 
 ```bash
-ln -s "$PWD/SKILL.md" ~/.omp/agent/skills/usirooms-cli/SKILL.md   # mkdir -p first
+mkdir -p ~/.omp/agent/skills/usirooms-cli
+ln -s "$PWD/skills/usirooms-cli/SKILL.md" ~/.omp/agent/skills/usirooms-cli/SKILL.md
 ```
 
 Or let the skills CLI install it straight from this repository, in any project:
