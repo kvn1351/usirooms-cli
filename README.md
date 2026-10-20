@@ -138,29 +138,34 @@ path is simply ignored.
 
 `skills/usirooms-cli/SKILL.md` describes the CLI for coding agents: commands,
 output semantics, exit codes, scope precedence and the traps (`?? non abilitato`
-rooms, half-open intervals, `--date` cost). It sits in a `skills/<name>/`
-directory on purpose — that is the layout installers package on its own, so a
-skill install pulls exactly one file instead of the whole checkout.
+rooms, half-open intervals, `--date` cost). The `skills/<name>/` layout is
+deliberate — installers package that directory on its own, so a skill install
+pulls exactly one file and never the whole checkout.
 
-Symlink it where your agent looks for skills, e.g.:
-
-```bash
-mkdir -p ~/.omp/agent/skills/usirooms-cli
-ln -s "$PWD/skills/usirooms-cli/SKILL.md" ~/.omp/agent/skills/usirooms-cli/SKILL.md
-```
-
-Or let the skills CLI install it straight from this repository, in any project:
+Install it globally, into the same place as every other skill on the machine:
 
 ```bash
-npx skills add kvn1351/usirooms-cli          # -> .agents/skills + .claude/skills
-npx skills add kvn1351/usirooms-cli -g       # user-level instead of project-level
-npx skills add kvn1351/usirooms-cli -a '*'   # every detected agent
+npx skills add kvn1351/usirooms-cli -g -a '*'   # -> ~/.agents/skills/usirooms-cli
+npx skills list -g                              # verify it is listed
 ```
 
-The repo is private, so the clone uses your git credentials; `skills-lock.json`
-pins the commit. Note that `npx skill` (singular) is a different package that
-only resolves `skills/<name>` inside `vercel-labs/agent-skills` and cannot
-install from here.
+`-g` installs user-level, which is what `npx skills list -g` reports and what
+most agents read (the rest get a symlink from their own skills directory);
+`-a '*'` covers every agent the CLI detects. Without `-g` the skill lands in the
+current project only (`./.agents/skills` plus `skills-lock.json`), so it stays
+invisible to `list -g` and unavailable everywhere else — use that variant only
+for a pinned, per-repo copy.
+
+Manual fallback, no installer involved:
+
+```bash
+mkdir -p ~/.agents/skills/usirooms-cli
+ln -s "$PWD/skills/usirooms-cli/SKILL.md" ~/.agents/skills/usirooms-cli/SKILL.md
+```
+
+The repo is private, so the clone uses your git credentials. Note that
+`npx skill` (singular) is a different package that only resolves `skills/<name>`
+inside `vercel-labs/agent-skills` and cannot install from here.
 
 ## Build & install
 
