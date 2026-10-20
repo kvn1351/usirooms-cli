@@ -162,8 +162,14 @@ but has no timetable, which is a different answer: unknown, not free.
 ## Scope and defaults
 
 Precedence: `--building` > `--campus` > config `buildings` > config `campus` >
-all rooms. `--campus east` covers `east` + `east2`; `--campus west` covers
-`black` + `red` + `main`.
+all rooms, then the config `exclude` list is subtracted. `--campus east` covers
+`east` + `east2`; `--campus west` covers `black` + `red` + `main`.
+
+`exclude` is how a user skips buildings they never use. It only filters scans:
+an explicit `--building` or `--room` still reaches an excluded building, and the
+scope line says so (`[east campus (east+east2), excluding east2]`). If a scan
+comes back with fewer rooms than the campus implies, read that bracket before
+suspecting the tool.
 
 Optional defaults file — `$USI_ROOMS_CONFIG`, else
 `~/.config/usirooms/config.json`:
@@ -172,6 +178,7 @@ Optional defaults file — `$USI_ROOMS_CONFIG`, else
 {
   "campus": "east",
   "buildings": ["east", "east2"],
+  "exclude": ["east2"],
   "language": "english",
   "name": "Your Name"
 }

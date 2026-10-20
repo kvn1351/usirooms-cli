@@ -70,7 +70,7 @@ LABEL = {
 
 # ---- defaults file --------------------------------------------------------
 # $USI_ROOMS_CONFIG, else ~/.config/usirooms/config.json
-CONFIG_KEYS = ("campus", "buildings", "language", "name")
+CONFIG_KEYS = ("campus", "buildings", "exclude", "language", "name")
 LANG_ALIAS = {"en": "en", "eng": "en", "english": "en",
               "it": "it", "ita": "it", "italian": "it", "italiano": "it"}
 LANG_LONG = {"en": "english", "it": "italian"}
@@ -93,6 +93,10 @@ def _check(key: str, value, path: str):
     elif key == "buildings":
         if not isinstance(value, list) or any(b not in ROOMS for b in value):
             raise SystemExit(f"error: {path}: buildings must be a list drawn from "
+                             f"{list(ROOMS)}")
+    elif key == "exclude":
+        if not isinstance(value, list) or any(b not in ROOMS for b in value):
+            raise SystemExit(f"error: {path}: exclude must be a list drawn from "
                              f"{list(ROOMS)}")
     elif key == "language":
         if LANG_ALIAS.get(str(value).strip().lower()) is None:
@@ -385,15 +389,18 @@ config file (optional; command-line flags always win):
   {
     "campus": "east",
     "buildings": ["east", "east2"],
+    "exclude": ["east2"],
     "language": "english",
     "name": "Your Name"
   }
   campus     default scan scope, east or west
   buildings  default scan scope, a list drawn from the buildings below
+  exclude    buildings to leave out of scans (an explicit --building still wins)
   language   english or italian; mail body language, decoupled from campus
   name       signature used in booking mails
 
-  scope      --building > --campus > config buildings > config campus > all
+  scope      --building > --campus > config buildings > config campus > all,
+             then minus config exclude
   language   --lang > config language > campus default (east EN, west IT)
   signature  --name > $USI_BOOK_NAME > config name > macOS full name
 
@@ -428,6 +435,9 @@ def cmd_config(a) -> int:
         cfg["language"], changed = LANG_LONG[a.lang], True
     if a.buildings:
         cfg["buildings"] = [b.strip() for b in a.buildings.split(",") if b.strip()]
+        changed = True
+    if a.exclude is not None:
+        cfg["exclude"] = [b.strip() for b in a.exclude.split(",") if b.strip()]
         changed = True
     if a.name:
         cfg["name"], changed = a.name, True
@@ -486,6 +496,9 @@ def main(argv=None) -> int:
                          "~/.config/usirooms/config.json")
     ap.add_argument("--buildings", default=None,
                     help="comma-separated building list, e.g. east,east2 (config)")
+    ap.add_argument("--exclude", default=None,
+                    help="comma-separated buildings to skip in scans, e.g. east2 "
+                         "(config); empty string clears")
     ap.add_argument("--unset", default=None,
                     help="comma-separated config keys to remove (config)")
     ap.add_argument("--reset", action="store_true",
@@ -549,6 +562,15 @@ def main(argv=None) -> int:
             scope = f"{a.campus} campus ({'+'.join(CAMPUS_BUILDINGS[a.campus])})"
         else:
             rooms, scope = ALL_ROOMS, "all buildings"
+
+        excluded = set() if a.building else set(cfg.get("exclude") or [])
+        if excluded:
+            rooms = [r for r in rooms if building_of(r) not in excluded]
+            if not rooms:
+                print("error: every room in scope is excluded by config 'exclude' "
+                      f"({', '.join(sorted(excluded))})", file=sys.stderr)
+                return 2
+            scope += f", excluding {'+'.join(b for b in ROOMS if b in excluded)}"
 
         if a.command == "rooms":
             if a.json:
