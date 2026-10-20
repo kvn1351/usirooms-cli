@@ -23,7 +23,7 @@ build the tool if it is missing.
 | You say | What happens |
 |---|---|
 | "Which east campus rooms are free at 14:30?" | scans the campus, lists free rooms with the lecture that occupies each busy one |
-| "Anything free at 16:00 today?" | scans both campuses, groups by building |
+| "Anything free at 16:00 today?" | scans every building in order, from the black building to the main one |
 | "Is C1.03 free tomorrow at 11?" | one room, one instant, yes or no |
 | "What does D3.01 look like today?" | the full timetable plus the free gaps between lectures |
 | "Book D0.02 for 16:00 to 17:00 tomorrow" | checks the slot, then opens your mail client with the reservation e-mail prefilled |
