@@ -215,7 +215,7 @@ class Rooms:
         cur = self._page_date(page)
         if cur is None:
             if page.lstrip().lower().startswith("non abilitato"):
-                raise RuntimeError("room not enabled in the scheduling system ('non abilitato')")
+                raise RuntimeError("not enabled in the scheduler ('non abilitato')")
             raise RuntimeError(f"no schedule returned for {room!r} (unknown room)")
 
         delta = (when - cur).days
@@ -462,7 +462,7 @@ def main(argv=None) -> int:
             })
         for r in rows:
             if "error" in r:
-                print(f"  ??   {r['room']:<7} {r['error'][:40]}")
+                print(f"  ??   {r['room']:<7} {r['error']}")
             else:
                 print(f"  {'FREE' if r['free'] else 'BUSY'} {r['room']:<7} {r['at'] or ''}")
         print(f"\n{when} {a.time} [{scope}]: "
