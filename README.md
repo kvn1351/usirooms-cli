@@ -1,4 +1,4 @@
-# usirooms
+# usirooms CLI + Agent Skill
 
 **Which USI Lugano rooms are free right now, and the booking e-mail, written
 for you.**
@@ -32,7 +32,18 @@ build the tool if it is missing.
 Nothing is sent without you. If the slot is already taken, the CLI refuses and
 says which lecture is in the way.
 
-## Install the CLI
+### Let your agent install it
+
+Prompt:
+
+> Install the skill from https://github.com/kvn1351/usirooms-cli and build the
+> CLI it needs.
+
+The skill carries its own bootstrap instructions (look for `usirooms`, fall back
+to a checkout, otherwise clone and `make && make install`), so the agent lands
+in exactly the same place as the two commands above.
+
+## Or manually: Install the CLI
 
 macOS, Python 3.9+:
 
@@ -69,17 +80,6 @@ including cloning and building it when `usirooms` is not on `PATH` yet.
 
 Either way the install needs your GitHub credentials: the repository is
 private, so the clone authenticates through your existing `gh` login.
-
-### Or let the agent do it
-
-Paste the link and say what you want, no commands to type:
-
-> Install the skill from https://github.com/kvn1351/usirooms-cli and build the
-> CLI it needs.
-
-The skill carries its own bootstrap instructions (look for `usirooms`, fall back
-to a checkout, otherwise clone and `make && make install`), so the agent lands
-in exactly the same place as the two commands above.
 
 ## Use it
 
