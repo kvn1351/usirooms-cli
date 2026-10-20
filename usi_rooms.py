@@ -39,6 +39,8 @@ import urllib.parse
 import urllib.request
 import webbrowser
 
+__version__ = "0.1.0"
+
 BASE = "https://aule.usi.ch/aule/View.aspx"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) appleWebKit/537.36 Safari/537.36"
 
@@ -374,6 +376,8 @@ system (aule.usi.ch). Read-only: no booking API exists, so `book` prepares and
 opens the booking e-mail instead of reserving anything."""
 
 HELP_EPILOG = """\
+version:  %(prog)s --version   (skill and CLI must agree; see SKILL.md)
+
 commands:
   day    one room: lectures plus the free gaps between them
   at     one room: free at --time? exit 0 free, 1 busy, 2 error
@@ -478,6 +482,8 @@ def main(argv=None) -> int:
         epilog=HELP_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    ap.add_argument("--version", action="version", version=f"%(prog)s {__version__}",
+                    help="print the CLI version and exit")
     ap.add_argument("command", choices=["day", "at", "free", "rooms", "book", "config"],
                     help="action to run; see commands below")
     ap.add_argument("--room", help="room name, e.g. C1.03, A-11, SI-006, 251")

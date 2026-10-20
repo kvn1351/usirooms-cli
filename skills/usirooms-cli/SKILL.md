@@ -1,5 +1,6 @@
 ---
 name: usirooms-cli
+version: 0.1.0
 description: Check USI Lugano room availability and prepare a booking e-mail. Use when asked which rooms are free at a given time, whether one specific room is free, a room's daily timetable, or to start a room reservation at USI (east or west campus).
 ---
 
@@ -18,12 +19,25 @@ usirooms <command> [flags]
 The binary normally lives at `~/.local/bin/usirooms` (symlink into
 `~/.local/lib/usirooms`).
 
+### Version check
+
+This skill is version **0.1.0** and requires `usirooms` **0.1.0 or newer**.
+
+```bash
+usirooms --version     # -> usirooms 0.1.0
+```
+
+Run that before the first real query. If the command is missing, or the version
+is older than the one above, the binary is stale: rebuild it from the checkout
+(steps below) instead of guessing at flags that may not exist yet. Do not
+assume a newer CLI feature is present just because this skill mentions it.
+
 ## If `usirooms` is missing
 
 Installing this skill does **not** install the CLI. Never guess availability,
 and do not fall back to the website by reading screenshots: build the tool.
 
-1. Check for the binary: `command -v usirooms`.
+1. Check for the binary: `command -v usirooms`, then `usirooms --version`.
 2. Check for a checkout: if `usi_rooms.py` exists in the current project or a
    sibling directory, `python3 usi_rooms.py <command> [flags]` runs with no
    build at all.

@@ -53,9 +53,15 @@ checkout.
 ## Install the skill (for agents)
 
 ```bash
-npx skills add kvn1351/usirooms-cli -g -a '*'
+npx skills add kvn1351/usirooms-cli -g -a '*'   # track the default branch
+npx skills add kvn1351/usirooms-cli#v0.1.0 -g -a '*'   # pinned to a release
 npx skills list -g
 ```
+
+`#vX.Y.Z` pins a tag (or a branch). The installer records the ref and a content
+hash in `~/.agents/.skill-lock.json`, and project installs record it in
+`skills-lock.json`. Commit shas do not work: the fragment becomes
+`git clone --branch <ref>`, which only accepts branches and tags.
 
 That drops a single file into `~/.agents/skills/usirooms-cli` and wires it to
 every agent the installer detects, so the next session knows how to use the CLI,
@@ -133,6 +139,20 @@ East campus rooms mail `decanato.inf@usi.ch` in English; the black, red and main
 buildings mail `gestione-aule.lu@usi.ch` in Italian. Add `--no-open` to print
 the `mailto:` link instead of launching the client, `--json` for structured
 output, or `--force` to prepare a mail for a slot that is occupied.
+
+## Versioning
+
+The CLI reports its own version, and each release is tagged:
+
+```bash
+usirooms --version        # usirooms 0.1.0
+git tag -l                # v0.1.0, ...
+```
+
+A skill install carries the same number in its frontmatter and states the
+minimum CLI it needs, so a stale binary is detectable instead of silently
+missing new flags. Install a specific release with `#v0.1.0`; omit the fragment
+to follow the default branch.
 
 ## Defaults file
 
