@@ -59,6 +59,9 @@ CAMPUSES = {
     "west": ROOMS["black"] + ROOMS["red"] + ROOMS["main"],
 }
 BUILDING_CAMPUS = {"east": "east", "east2": "east", "black": "west", "red": "west", "main": "west"}
+CAMPUS_BUILDINGS = {c: [b for b, camp in BUILDING_CAMPUS.items() if camp == c]
+                    for c in ("east", "west")}
+ALL_ROOMS = [r for v in ROOMS.values() for r in v]
 CAMPUS_EMAIL = {"east": EMAIL["east"], "west": EMAIL_DEFAULT}
 LABEL = {
     "east": "east campus", "east2": "east campus", "west": "west campus",
@@ -256,6 +259,13 @@ class Rooms:
                 "free": self.gaps(apts, when)}
 
 
+def explain_error(exc: Exception, room: str | None) -> str:
+    msg = str(exc)
+    if room and "non abilitato" in msg and room not in ALL_ROOMS:
+        msg += f"; {room!r} is not in the room inventory either (see `usirooms rooms`)"
+    return msg
+
+
 def _busy(apts: list[dict], when: dt.date, times: list[str]) -> bool:
     for a in apts:
         s, e = dt.datetime.fromisoformat(a["start"]), dt.datetime.fromisoformat(a["end"])
@@ -354,7 +364,8 @@ HELP_EPILOG = """\
 commands:
   day    one room: lectures plus the free gaps between them
   at     one room: free at --time? exit 0 free, 1 busy, 2 error
-  free   every room in scope: which ones are free at --time
+  free   every room in scope: free/busy at --time, with the free window
+  rooms  the room inventory in scope, grouped by building
   book   prefilled booking e-mail for --room/--from/--to, opened in your client
   config show, set, unset or reset the defaults file below
 
@@ -362,6 +373,7 @@ examples:
   %(prog)s free --campus east --time 14:30
   %(prog)s free --time 16:00 --building red --date 2026-10-23
   %(prog)s at --room C1.03 --time 14:30
+  %(prog)s rooms --campus east
   %(prog)s day --room D3.01 --json
   %(prog)s book --room D0.02 --from 16:00 --to 17:00
   %(prog)s config --campus east --buildings east,east2 --language english
@@ -447,7 +459,7 @@ def main(argv=None) -> int:
         epilog=HELP_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    ap.add_argument("command", choices=["day", "at", "free", "book", "config"],
+    ap.add_argument("command", choices=["day", "at", "free", "rooms", "book", "config"],
                     help="action to run; see commands below")
     ap.add_argument("--room", help="room name, e.g. C1.03, A-11, SI-006, 251")
     ap.add_argument("--building", choices=list(ROOMS), default=None,
@@ -457,7 +469,7 @@ def main(argv=None) -> int:
     ap.add_argument("--date", default=None,
                     help="YYYY-MM-DD, default today")
     ap.add_argument("--time", default=None,
-                    help="HH:MM, the instant to test (at, free)")
+                    help="HH:MM, the instant to test (at, free); default now")
     ap.add_argument("--from", dest="frm", help="HH:MM, booking start (book)")
     ap.add_argument("--to", dest="to", help="HH:MM, booking end (book)")
     ap.add_argument("--name", help="signature; default $USI_BOOK_NAME, config "
@@ -493,12 +505,13 @@ def main(argv=None) -> int:
 
     api = Rooms()
     when = dt.date.fromisoformat(a.date) if a.date else dt.date.today()
+    a.time = a.time or dt.datetime.now().strftime("%H:%M")
 
     if a.command in ("day", "at"):
         try:
             out = api.day(a.room, when)
         except Exception as exc:
-            print(f"error: {exc}", file=sys.stderr)
+            print(f"error: {explain_error(exc, a.room)}", file=sys.stderr)
             return 2
 
         if a.command == "day":
@@ -519,23 +532,36 @@ def main(argv=None) -> int:
                 print(f"  <- {x['title']} ({x['start'][11:16]}-{x['end'][11:16]})")
         return 1 if busy else 0
 
-    if a.command == "free":
+    if a.command in ("free", "rooms"):
         if cli_campus and a.building and BUILDING_CAMPUS[a.building] != cli_campus:
             print(f"error: {a.building} is not on the {a.campus} campus", file=sys.stderr)
             return 2
         if a.building:
-            rooms = ROOMS[a.building]
-            scope = a.building
+            rooms, scope = ROOMS[a.building], a.building
         elif cli_campus:
-            rooms, scope = CAMPUSES[cli_campus], f"{cli_campus} campus"
+            rooms = CAMPUSES[cli_campus]
+            scope = f"{cli_campus} campus ({'+'.join(CAMPUS_BUILDINGS[cli_campus])})"
         elif scope_buildings:
             rooms = [r for b in scope_buildings for r in ROOMS[b]]
             scope = ", ".join(scope_buildings)
         elif a.campus:
-            rooms, scope = CAMPUSES[a.campus], f"{a.campus} campus"
+            rooms = CAMPUSES[a.campus]
+            scope = f"{a.campus} campus ({'+'.join(CAMPUS_BUILDINGS[a.campus])})"
         else:
-            rooms = [r for v in ROOMS.values() for r in v]
-            scope = "all buildings"
+            rooms, scope = ALL_ROOMS, "all buildings"
+
+        if a.command == "rooms":
+            if a.json:
+                print(json.dumps({"scope": scope, "rooms": rooms}, indent=2))
+            else:
+                print(f"{len(rooms)} rooms [{scope}]", file=sys.stderr)
+                for building in ROOMS:
+                    in_scope = [r for r in ROOMS[building] if r in rooms]
+                    if in_scope:
+                        print(f"  {building:<6} {' '.join(in_scope)}")
+            return 0
+
+        moment = a.time or dt.datetime.now().strftime("%H:%M")
         rows = []
         for room in rooms:
             try:
@@ -543,18 +569,31 @@ def main(argv=None) -> int:
             except Exception as exc:  # unknown room / upstream hiccup
                 rows.append({"room": room, "error": str(exc)})
                 continue
+            busy = next((x for x in out["appointments"]
+                         if x["start"][11:16] <= moment < x["end"][11:16]), None)
+            window = next((g for g in out["free"]
+                           if g["start"][11:16] <= moment < g["end"][11:16]), None)
             rows.append({
                 "room": room,
-                "free": not _busy(out["appointments"], when, [a.time]),
-                "at": next((x["title"] for x in out["appointments"]
-                            if x["start"][11:16] <= a.time < x["end"][11:16]), None),
+                "free": busy is None,
+                "window": f"{window['start'][11:16]}-{window['end'][11:16]}" if window else None,
+                "busy": f"{busy['start'][11:16]}-{busy['end'][11:16]} {busy['title']}"
+                        if busy else None,
             })
+
+        if a.json:
+            print(json.dumps({"date": when.isoformat(), "time": moment,
+                              "scope": scope, "rooms": rows}, indent=2))
+            return 0
+
         for r in rows:
             if "error" in r:
                 print(f"  ??   {r['room']:<7} {r['error']}")
+            elif r["free"]:
+                print(f"  FREE {r['room']:<7} {r['window'] or ''}")
             else:
-                print(f"  {'FREE' if r['free'] else 'BUSY'} {r['room']:<7} {r['at'] or ''}")
-        print(f"\n{when} {a.time} [{scope}]: "
+                print(f"  BUSY {r['room']:<7} {r['busy']}")
+        print(f"\n{when} {moment} [{scope}]: "
               f"{sum(1 for r in rows if r.get('free'))} free / {len(rows)}")
         return 0
 
@@ -586,7 +625,7 @@ def main(argv=None) -> int:
         try:
             out = api.day(a.room, when)
         except Exception as exc:
-            print(f"error: {exc}", file=sys.stderr)
+            print(f"error: {explain_error(exc, a.room)}", file=sys.stderr)
             return 2
 
         start = dt.datetime.combine(when, frm)

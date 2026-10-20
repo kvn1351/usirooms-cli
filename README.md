@@ -78,8 +78,9 @@ in exactly the same place as the two commands above.
 ## Use it
 
 ```bash
-usirooms free --time 14:30                  # both campuses
-usirooms free --campus east --time 14:30    # east campus only
+usirooms free --campus east                 # what is free right now
+usirooms free --campus east --time 14:30    # ... at a given time
+usirooms rooms --campus east                # which rooms exist
 usirooms at --room C1.03 --time 14:30       # exit 1 when busy
 usirooms day --room D3.01                   # timetable + free gaps
 usirooms book --room D0.02 --from 16:00 --to 17:00
@@ -87,29 +88,31 @@ usirooms book --room D0.02 --from 16:00 --to 17:00
 
 ```
 $ usirooms free --campus east --time 16:00
-  BUSY C1.03   Interazione orale A2-B1corso pomeridiano (COM)Trincado PamelaSA 2026-2027
-  FREE C1.04   
-  BUSY C1.05   High-Performance Computing
-  BUSY D0.02   Game Design & Development
-  BUSY D0.03   Enterprise Information Systems
-  BUSY D0.10   Competitive Programming
-  BUSY D1.13   Computational Biology and Drug Design
-  BUSY D1.14   Numerical Computing
-  FREE D2.19   
+  BUSY C1.03   15:30-17:00 Interazione orale A2-B1corso pomeridiano (COM)Trincado PamelaSA 2026-2027
+  FREE C1.04   15:00-17:30
+  BUSY C1.05   15:30-17:00 High-Performance Computing
+  BUSY D0.02   15:30-17:00 Game Design & Development
+  BUSY D0.03   15:30-17:00 Enterprise Information Systems
+  BUSY D0.10   15:30-18:00 Competitive Programming
+  BUSY D1.13   15:30-17:00 Computational Biology and Drug Design
+  BUSY D1.14   15:30-17:00 Numerical Computing
+  FREE D2.19   15:30-20:00
   ??   D2.21   not enabled in the scheduler ('non abilitato')
-  FREE D3.01   
+  FREE D3.01   12:30-20:00
   ??   D3.03   not enabled in the scheduler ('non abilitato')
-  BUSY D4.01   Meeting OR Group
+  BUSY D4.01   14:00-17:00 Meeting OR Group
   ??   D4.08   not enabled in the scheduler ('non abilitato')
-  FREE D5.01   
+  FREE D5.01   16:00-20:00
   ??   D5.03   not enabled in the scheduler ('non abilitato')
 
-2026-10-20 16:00 [east campus]: 4 free / 16
+2026-10-20 16:00 [east campus (east+east2)]: 4 free / 16
 ```
 
-`FREE` and `BUSY` are what you expect; `??` means the room has no timetable in
-the scheduler at all, so it is unknown rather than available. Dates are
-`--date YYYY-MM-DD` (default today), and times are Lugano wall clock.
+`FREE` and `BUSY` are what you expect, each with the time range that decides it,
+so you see at a glance how long a room stays yours. `??` means the room has no
+timetable in the scheduler at all, so it is unknown rather than available. Dates
+are `--date YYYY-MM-DD` (default today), times default to now, and everything is
+Lugano wall clock.
 
 Booking opens your default mail client with everything filled in:
 
