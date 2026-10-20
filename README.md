@@ -61,7 +61,19 @@ That drops a single file into `~/.agents/skills/usirooms-cli` and wires it to
 every agent the installer detects, so the next session knows how to use the CLI
 — including cloning and building it when `usirooms` is not on `PATH` yet.
 
-The repository is private, so the clone uses your GitHub credentials.
+Either way the install needs your GitHub credentials: the repository is
+private, so the clone authenticates through your existing `gh` login.
+
+### Or let the agent do it
+
+Paste the link and say what you want — no commands to type:
+
+> Install the skill from https://github.com/kvn1351/usirooms-cli and build the
+> CLI it needs.
+
+The skill carries its own bootstrap instructions (look for `usirooms`, fall back
+to a checkout, otherwise clone and `make && make install`), so the agent lands
+in exactly the same place as the two commands above.
 
 ## Use it
 
