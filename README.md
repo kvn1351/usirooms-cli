@@ -144,6 +144,19 @@ intervals, `--date` cost). Symlink it where your agent looks for skills, e.g.:
 ln -s "$PWD/SKILL.md" ~/.omp/agent/skills/usirooms-cli/SKILL.md   # mkdir -p first
 ```
 
+Or let the skills CLI install it straight from this repository, in any project:
+
+```bash
+npx skills add kvn1351/usirooms-cli          # -> .agents/skills + .claude/skills
+npx skills add kvn1351/usirooms-cli -g       # user-level instead of project-level
+npx skills add kvn1351/usirooms-cli -a '*'   # every detected agent
+```
+
+The repo is private, so the clone uses your git credentials; `skills-lock.json`
+pins the commit. Note that `npx skill` (singular) is a different package that
+only resolves `skills/<name>` inside `vercel-labs/agent-skills` and cannot
+install from here.
+
 ## Build & install
 
 The CLI itself needs only Python 3.9+ (`python3 usi_rooms.py --help` works with
