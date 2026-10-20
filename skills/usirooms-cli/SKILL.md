@@ -12,9 +12,14 @@ reserved and nothing is sent.
 ## Invocation
 
 ```bash
-usirooms <command> [flags]              # installed (~/.local/bin/usirooms)
-python3 usi_rooms.py <command> [flags]  # straight from the repo
+usirooms <command> [flags]
 ```
+
+The binary lives at `~/.local/bin/usirooms` (symlink into
+`~/.local/lib/usirooms`). If it is not on `PATH`, this skill has no tool behind
+it — installing the skill does not install the CLI. Ask the user to run
+`make install` in the usirooms-cli checkout, or run
+`python3 usi_rooms.py <command> [flags]` from that checkout directly.
 
 ## Commands
 
